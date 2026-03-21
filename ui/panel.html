@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="panel.css" />
+    <title>AI Polish</title>
+  </head>
+  <body>
+    <div id="ai-polish-root" data-theme="auto">
+      <div class="header drag-handle">
+        <div class="title" data-i18n="uiTitle">AI Polish</div>
+        <div class="header-actions">
+          <button id="themeToggle" class="ghost small" type="button" data-i18n="themeToggle">Theme</button>
+          <button id="closeBtn" class="ghost close" type="button" aria-label="Close">x</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <label class="label" data-i18n="selectionLabel">Selection</label>
+          <div id="selectionPreview" class="selection"></div>
+        </div>
+
+        <div class="section">
+          <label class="label" data-i18n="promptLabel">Prompt</label>
+          <select id="promptPreset" class="select"></select>
+          <textarea
+            id="promptInput"
+            class="textarea"
+            rows="2"
+            data-i18n-placeholder="promptPlaceholder"
+          ></textarea>
+        </div>
+
+        <div class="section">
+          <label class="label" data-i18n="contextLabel">Context</label>
+          <label class="toggle">
+            <input id="contextToggle" type="checkbox" />
+            <span class="toggle-track"></span>
+            <span class="toggle-text" data-i18n="contextToggle">Use nearby context</span>
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label class="label" data-i18n="providerLabel">Provider</label>
+            <select id="providerSelect" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="label" data-i18n="modelLabel">Model</label>
+            <select id="modelSelect" class="select"></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" data-i18n="apiKeyLabel">API Key</label>
+          <div class="key-row">
+            <input
+              id="apiKeyInput"
+              type="password"
+              class="input"
+              data-i18n-placeholder="apiKeyPlaceholder"
+            />
+            <button id="toggleKey" class="ghost small" type="button" data-i18n="showKey">Show</button>
+          </div>
+        </div>
+
+        <div class="row actions-top">
+          <button id="generateBtn" class="primary" type="button" data-i18n="generateButton">Generate</button>
+          <div id="statusText" class="status"></div>
+        </div>
+
+        <div class="section">
+          <label class="label" data-i18n="outputLabel">Result</label>
+          <textarea id="outputArea" class="textarea output" rows="5" readonly></textarea>
+        </div>
+
+        <div class="row actions">
+          <button id="replaceBtn" class="secondary" type="button" data-i18n="replaceButton">Replace</button>
+          <button id="insertBtn" class="secondary" type="button" data-i18n="insertAfterButton">Insert after</button>
+          <button id="copyBtn" class="secondary" type="button" data-i18n="copyButton">Copy</button>
+        </div>
+
+        <div id="errorText" class="error"></div>
+      </div>
+    </div>
+
+    <script src="panel.js"></script>
+  </body>
+</html>

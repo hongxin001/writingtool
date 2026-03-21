@@ -1,0 +1,143 @@
+{
+  "extensionName": {
+    "message": "AI Polish"
+  },
+  "extensionDescription": {
+    "message": "Polish and rewrite selected text with your chosen AI model."
+  },
+  "contextMenuTitle": {
+    "message": "AI Polish"
+  },
+  "uiTitle": {
+    "message": "AI Polish"
+  },
+  "selectionLabel": {
+    "message": "Selection"
+  },
+  "promptLabel": {
+    "message": "Prompt"
+  },
+  "promptPresetDefault": {
+    "message": "Default polish"
+  },
+  "promptPresetConcise": {
+    "message": "Concise rewrite"
+  },
+  "promptPresetProfessional": {
+    "message": "Professional tone"
+  },
+  "promptPresetFriendly": {
+    "message": "Friendly tone"
+  },
+  "promptPresetAcademic": {
+    "message": "Academic style"
+  },
+  "promptPresetCustom": {
+    "message": "Custom"
+  },
+  "promptTextDefault": {
+    "message": "Polish and improve this text while keeping the original meaning."
+  },
+  "promptTextConcise": {
+    "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "promptTextProfessional": {
+    "message": "Rewrite in a professional, business-appropriate tone while preserving the original meaning."
+  },
+  "promptTextFriendly": {
+    "message": "Rewrite in a friendly, warm tone while preserving the original meaning."
+  },
+  "promptTextAcademic": {
+    "message": "Rewrite in an academic style with formal wording while preserving the original meaning."
+  },
+  "contextLabel": {
+    "message": "Context"
+  },
+  "contextToggle": {
+    "message": "Use nearby context"
+  },
+  "promptPlaceholder": {
+    "message": "Polish and improve this text while keeping the original meaning"
+  },
+  "providerLabel": {
+    "message": "Provider"
+  },
+  "modelLabel": {
+    "message": "Model"
+  },
+  "apiKeyLabel": {
+    "message": "API Key"
+  },
+  "apiKeyPlaceholder": {
+    "message": "Paste your API key"
+  },
+  "generateButton": {
+    "message": "Generate"
+  },
+  "replaceButton": {
+    "message": "Replace"
+  },
+  "insertAfterButton": {
+    "message": "Insert after"
+  },
+  "copyButton": {
+    "message": "Copy"
+  },
+  "outputLabel": {
+    "message": "Result"
+  },
+  "defaultPrompt": {
+    "message": "Polish and improve this text while keeping the original meaning"
+  },
+  "errorNoSelection": {
+    "message": "No text selected. Highlight some text and try again."
+  },
+  "errorNoApiKey": {
+    "message": "API key is required for the selected provider."
+  },
+  "errorUnknown": {
+    "message": "Something went wrong. Please try again."
+  },
+  "errorNoOutput": {
+    "message": "No output to use yet."
+  },
+  "errorNotEditable": {
+    "message": "The selection is not editable. Use Copy instead."
+  },
+  "errorUnsupportedProvider": {
+    "message": "Unsupported provider."
+  },
+  "errorMissingHostPermission": {
+    "message": "Missing host permission for {0}. Reload the extension to apply permissions."
+  },
+  "errorNetwork": {
+    "message": "Network error. Check your connection or proxy, then try again."
+  },
+  "errorEmptyResult": {
+    "message": "No result was returned. Please try again."
+  },
+  "statusGenerating": {
+    "message": "Generating..."
+  },
+  "statusCopied": {
+    "message": "Copied to clipboard."
+  },
+  "statusReplaced": {
+    "message": "Selection replaced."
+  },
+  "statusInserted": {
+    "message": "Inserted after selection."
+  },
+  "statusFallback": {
+    "message": "Model unavailable in your region. Trying {0} instead..."
+  },
+  "themeToggle": {
+    "message": "Theme"
+  },
+  "showKey": {
+    "message": "Show"
+  },
+  "hideKey": {
+    "message": "Hide"
+  }
+}

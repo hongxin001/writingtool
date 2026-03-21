@@ -1,0 +1,143 @@
+﻿{
+  "extensionName": {
+    "message": "AI 润色"
+  },
+  "extensionDescription": {
+    "message": "使用你选择的 AI 模型润色与改写选中的文本。"
+  },
+  "contextMenuTitle": {
+    "message": "AI 润色"
+  },
+  "uiTitle": {
+    "message": "AI 润色"
+  },
+  "selectionLabel": {
+    "message": "选中文本"
+  },
+  "promptLabel": {
+    "message": "提示词"
+  },
+  "promptPresetDefault": {
+    "message": "默认润色"
+  },
+  "promptPresetConcise": {
+    "message": "简洁改写"
+  },
+  "promptPresetProfessional": {
+    "message": "正式商务"
+  },
+  "promptPresetFriendly": {
+    "message": "友好语气"
+  },
+  "promptPresetAcademic": {
+    "message": "学术风格"
+  },
+  "promptPresetCustom": {
+    "message": "自定义"
+  },
+  "promptTextDefault": {
+    "message": "在保持原意的前提下润色并提升这段文本。"
+  },
+  "promptTextConcise": {
+    "message": "在保持原意的前提下，将文本改写得更简洁清晰。"
+  },
+  "promptTextProfessional": {
+    "message": "在保持原意的前提下，以正式商务语气改写。"
+  },
+  "promptTextFriendly": {
+    "message": "在保持原意的前提下，以友好、亲切的语气改写。"
+  },
+  "promptTextAcademic": {
+    "message": "在保持原意的前提下，以正式的学术风格改写。"
+  },
+  "contextLabel": {
+    "message": "上下文"
+  },
+  "contextToggle": {
+    "message": "使用附近上下文"
+  },
+  "promptPlaceholder": {
+    "message": "在保持原意的前提下润色并提升这段文本"
+  },
+  "providerLabel": {
+    "message": "服务商"
+  },
+  "modelLabel": {
+    "message": "模型"
+  },
+  "apiKeyLabel": {
+    "message": "API Key"
+  },
+  "apiKeyPlaceholder": {
+    "message": "粘贴你的 API Key"
+  },
+  "generateButton": {
+    "message": "生成"
+  },
+  "replaceButton": {
+    "message": "替换"
+  },
+  "insertAfterButton": {
+    "message": "插入到后面"
+  },
+  "copyButton": {
+    "message": "复制"
+  },
+  "outputLabel": {
+    "message": "结果"
+  },
+  "defaultPrompt": {
+    "message": "在保持原意的前提下润色并提升这段文本"
+  },
+  "errorNoSelection": {
+    "message": "未检测到选中文本，请先选中再试。"
+  },
+  "errorNoApiKey": {
+    "message": "请为当前服务商填写 API Key。"
+  },
+  "errorUnknown": {
+    "message": "发生错误，请重试。"
+  },
+  "errorNoOutput": {
+    "message": "暂无可用结果。"
+  },
+  "errorNotEditable": {
+    "message": "当前选区不可编辑，请使用复制。"
+  },
+  "errorUnsupportedProvider": {
+    "message": "不支持的服务商。"
+  },
+  "errorMissingHostPermission": {
+    "message": "缺少 {0} 的访问权限，请重新加载扩展以应用权限。"
+  },
+  "errorNetwork": {
+    "message": "网络错误，请检查网络或代理后重试。"
+  },
+  "errorEmptyResult": {
+    "message": "未返回结果，请重试。"
+  },
+  "statusGenerating": {
+    "message": "生成中..."
+  },
+  "statusCopied": {
+    "message": "已复制到剪贴板。"
+  },
+  "statusReplaced": {
+    "message": "已替换选中文本。"
+  },
+  "statusInserted": {
+    "message": "已插入到选区后。"
+  },
+  "statusFallback": {
+    "message": "当前地区不可用，改用 {0} 继续尝试..."
+  },
+  "themeToggle": {
+    "message": "主题"
+  },
+  "showKey": {
+    "message": "显示"
+  },
+  "hideKey": {
+    "message": "隐藏"
+  }
+}
