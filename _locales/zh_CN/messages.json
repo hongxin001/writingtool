@@ -17,6 +17,174 @@
   "promptLabel": {
     "message": "提示词"
   },
+  "templateLabel": {
+    "message": "模板"
+  },
+  "settingsButton": {
+    "message": "设置"
+  },
+  "errorMissingSettings": {
+    "message": "缺少 API Key，请前往设置页面配置。"
+  },
+  "settingsTitle": {
+    "message": "AI 润色设置"
+  },
+  "settingsSubtitle": {
+    "message": "管理服务商、API Key 和改写模板。"
+  },
+  "providerSectionTitle": {
+    "message": "服务商"
+  },
+  "behaviorSectionTitle": {
+    "message": "行为"
+  },
+  "templatesSectionTitle": {
+    "message": "模板"
+  },
+  "shortcutsSectionTitle": {
+    "message": "快捷键"
+  },
+  "shortcutsSubtitle": {
+    "message": "可在 Chrome 扩展快捷键页面自定义快捷键。"
+  },
+  "openShortcutsButton": {
+    "message": "打开快捷键页面"
+  },
+  "shortcutsNotSet": {
+    "message": "未设置"
+  },
+  "defaultTemplateLabel": {
+    "message": "默认模板"
+  },
+  "addTemplateButton": {
+    "message": "添加模板"
+  },
+  "deleteTemplateButton": {
+    "message": "删除"
+  },
+  "customModelLabel": {
+    "message": "自定义模型（可选）"
+  },
+  "customModelPlaceholder": {
+    "message": "例如 openai/gpt-4o"
+  },
+  "statusSaved": {
+    "message": "已保存"
+  },
+  "templateDefaultName": {
+    "message": "默认润色"
+  },
+  "templateConciseName": {
+    "message": "简洁改写"
+  },
+  "templateProfessionalName": {
+    "message": "正式商务"
+  },
+  "templateFriendlyName": {
+    "message": "友好语气"
+  },
+  "templateAcademicName": {
+    "message": "学术风格"
+  },
+  "templateCustomName": {
+    "message": "自定义"
+  },
+  "templateDefaultText": {
+    "message": "在保持原意的前提下润色并提升这段文本。"
+  },
+  "templateDefaultTextZh": {
+    "message": "在保持原意的前提下润色并提升这段文本。"
+  },
+  "templateDefaultTextEn": {
+    "message": "Polish and improve this text while keeping the original meaning."
+  },
+  "templateConciseText": {
+    "message": "在保持原意的前提下，将文本改写得更简洁清晰。"
+  },
+  "templateConciseTextZh": {
+    "message": "在保持原意的前提下，将文本改写得更简洁清晰。"
+  },
+  "templateConciseTextEn": {
+    "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "templateProfessionalText": {
+    "message": "在保持原意的前提下，以正式商务语气改写。"
+  },
+  "templateProfessionalTextZh": {
+    "message": "在保持原意的前提下，以正式商务语气改写。"
+  },
+  "templateProfessionalTextEn": {
+    "message": "Rewrite in a professional, business-appropriate tone while preserving the original meaning."
+  },
+  "templateFriendlyText": {
+    "message": "在保持原意的前提下，以友好、亲切的语气改写。"
+  },
+  "templateFriendlyTextZh": {
+    "message": "在保持原意的前提下，以友好、亲切的语气改写。"
+  },
+  "templateFriendlyTextEn": {
+    "message": "Rewrite in a friendly, warm tone while preserving the original meaning."
+  },
+  "templateAcademicText": {
+    "message": "在保持原意的前提下，以正式的学术风格改写。"
+  },
+  "templateAcademicTextZh": {
+    "message": "在保持原意的前提下，以正式的学术风格改写。"
+  },
+  "templateAcademicTextEn": {
+    "message": "Rewrite in an academic style with formal wording while preserving the original meaning."
+  },
+  "templateTranslateName": {
+    "message": "翻译"
+  },
+  "templateTranslateTextZh": {
+    "message": "将文本翻译为自然流畅的英文，保持原意。"
+  },
+  "templateTranslateTextEn": {
+    "message": "Translate the text to natural, fluent Chinese while preserving the original meaning."
+  },
+  "templateTranslateEnName": {
+    "message": "翻译成英文"
+  },
+  "templateTranslateEnText": {
+    "message": "将文本翻译为自然流畅的英文，保持原意。"
+  },
+  "templateTranslateZhName": {
+    "message": "翻译成中文"
+  },
+  "templateTranslateZhText": {
+    "message": "将文本翻译为自然流畅的中文，保持原意。"
+  },
+  "templateExpandName": {
+    "message": "拓展写作"
+  },
+  "templateExpandText": {
+    "message": "在保持原意和语气的前提下扩展文本，补充更多细节与例子。"
+  },
+  "templateExpandTextZh": {
+    "message": "在保持原意和语气的前提下扩展文本，补充更多细节与例子。"
+  },
+  "templateExpandTextEn": {
+    "message": "Expand the text with more detail and examples while preserving the original meaning and tone."
+  },
+  "templatePromptZhLabel": {
+    "message": "中文提示词"
+  },
+  "templatePromptEnLabel": {
+    "message": "英文提示词"
+  },
+  "templatePromptLabel": {
+    "message": "模板提示词"
+  },
+  "templatePromptPlaceholder": {
+    "message": "可直接编辑当前语言的模板提示词"
+  },
+  "retryButton": {
+    "message": "还不够好"
+  },
+  "retryInstruction": {
+    "message": "在保持原意的前提下进一步优化润色。"
+  },
   "promptPresetDefault": {
     "message": "默认润色"
   },
@@ -56,11 +224,38 @@
   "contextToggle": {
     "message": "使用附近上下文"
   },
+  "floatingButtonToggle": {
+    "message": "显示悬浮 AI 按钮"
+  },
   "promptPlaceholder": {
     "message": "在保持原意的前提下润色并提升这段文本"
   },
   "providerLabel": {
     "message": "服务商"
+  },
+  "providerOpenaiLabel": {
+    "message": "OpenAI"
+  },
+  "providerAnthropicLabel": {
+    "message": "Anthropic"
+  },
+  "providerGeminiLabel": {
+    "message": "Google Gemini"
+  },
+  "providerXaiLabel": {
+    "message": "xAI Grok"
+  },
+  "providerOpenRouterLabel": {
+    "message": "OpenRouter"
+  },
+  "providerDeepSeekLabel": {
+    "message": "DeepSeek"
+  },
+  "providerVolcengineLabel": {
+    "message": "火山方舟（豆包）"
+  },
+  "providerMiniMaxLabel": {
+    "message": "MiniMax"
   },
   "modelLabel": {
     "message": "模型"
@@ -91,6 +286,9 @@
   },
   "errorNoSelection": {
     "message": "未检测到选中文本，请先选中再试。"
+  },
+  "errorClipboardSelection": {
+    "message": "无法从 Google 文档读取选区，请重新选中后再试。"
   },
   "errorNoApiKey": {
     "message": "请为当前服务商填写 API Key。"
@@ -139,5 +337,20 @@
   },
   "hideKey": {
     "message": "隐藏"
+  },
+  "closeButtonLabel": {
+    "message": "关闭"
+  },
+  "settingsHintMissingKey": {
+    "message": "请先设置 API Key"
+  },
+  "settingsHintPermission": {
+    "message": "请授予 API 权限"
+  },
+  "settingsHintNetwork": {
+    "message": "网络异常"
+  },
+  "settingsHintApiError": {
+    "message": "API 错误：{0}"
   }
 }

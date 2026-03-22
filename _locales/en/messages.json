@@ -17,6 +17,174 @@
   "promptLabel": {
     "message": "Prompt"
   },
+  "templateLabel": {
+    "message": "Template"
+  },
+  "settingsButton": {
+    "message": "Settings"
+  },
+  "errorMissingSettings": {
+    "message": "API key is missing. Open Settings to configure it."
+  },
+  "settingsTitle": {
+    "message": "AI Polish Settings"
+  },
+  "settingsSubtitle": {
+    "message": "Manage providers, API keys, and rewrite templates."
+  },
+  "providerSectionTitle": {
+    "message": "Provider"
+  },
+  "behaviorSectionTitle": {
+    "message": "Behavior"
+  },
+  "templatesSectionTitle": {
+    "message": "Templates"
+  },
+  "shortcutsSectionTitle": {
+    "message": "Keyboard Shortcuts"
+  },
+  "shortcutsSubtitle": {
+    "message": "Customize shortcuts in Chrome's extension shortcuts page."
+  },
+  "openShortcutsButton": {
+    "message": "Open shortcuts page"
+  },
+  "shortcutsNotSet": {
+    "message": "Not set"
+  },
+  "defaultTemplateLabel": {
+    "message": "Default template"
+  },
+  "addTemplateButton": {
+    "message": "Add template"
+  },
+  "deleteTemplateButton": {
+    "message": "Delete"
+  },
+  "customModelLabel": {
+    "message": "Custom model (optional)"
+  },
+  "customModelPlaceholder": {
+    "message": "e.g. openai/gpt-4o"
+  },
+  "statusSaved": {
+    "message": "Saved"
+  },
+  "templateDefaultName": {
+    "message": "Default polish"
+  },
+  "templateConciseName": {
+    "message": "Concise rewrite"
+  },
+  "templateProfessionalName": {
+    "message": "Professional tone"
+  },
+  "templateFriendlyName": {
+    "message": "Friendly tone"
+  },
+  "templateAcademicName": {
+    "message": "Academic style"
+  },
+  "templateCustomName": {
+    "message": "Custom"
+  },
+  "templateDefaultText": {
+    "message": "Polish and improve this text while keeping the original meaning."
+  },
+  "templateDefaultTextZh": {
+    "message": "在保持原意的前提下润色并提升这段文本。"
+  },
+  "templateDefaultTextEn": {
+    "message": "Polish and improve this text while keeping the original meaning."
+  },
+  "templateConciseText": {
+    "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "templateConciseTextZh": {
+    "message": "在保持原意的前提下，将文本改写得更简洁清晰。"
+  },
+  "templateConciseTextEn": {
+    "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "templateProfessionalText": {
+    "message": "Rewrite in a professional, business-appropriate tone while preserving the original meaning."
+  },
+  "templateProfessionalTextZh": {
+    "message": "在保持原意的前提下，以正式商务语气改写。"
+  },
+  "templateProfessionalTextEn": {
+    "message": "Rewrite in a professional, business-appropriate tone while preserving the original meaning."
+  },
+  "templateFriendlyText": {
+    "message": "Rewrite in a friendly, warm tone while preserving the original meaning."
+  },
+  "templateFriendlyTextZh": {
+    "message": "在保持原意的前提下，以友好、亲切的语气改写。"
+  },
+  "templateFriendlyTextEn": {
+    "message": "Rewrite in a friendly, warm tone while preserving the original meaning."
+  },
+  "templateAcademicText": {
+    "message": "Rewrite in an academic style with formal wording while preserving the original meaning."
+  },
+  "templateAcademicTextZh": {
+    "message": "在保持原意的前提下，以正式的学术风格改写。"
+  },
+  "templateAcademicTextEn": {
+    "message": "Rewrite in an academic style with formal wording while preserving the original meaning."
+  },
+  "templateTranslateName": {
+    "message": "Translate"
+  },
+  "templateTranslateTextZh": {
+    "message": "将文本翻译为自然流畅的英文，保持原意。"
+  },
+  "templateTranslateTextEn": {
+    "message": "Translate the text to natural, fluent Chinese while preserving the original meaning."
+  },
+  "templateTranslateEnName": {
+    "message": "Translate to English"
+  },
+  "templateTranslateEnText": {
+    "message": "Translate the text to natural, fluent English while preserving the original meaning."
+  },
+  "templateTranslateZhName": {
+    "message": "Translate to Chinese"
+  },
+  "templateTranslateZhText": {
+    "message": "Translate the text to natural, fluent Chinese while preserving the original meaning."
+  },
+  "templateExpandName": {
+    "message": "Expand writing"
+  },
+  "templateExpandText": {
+    "message": "Expand the text with more detail and examples while preserving the original meaning and tone."
+  },
+  "templateExpandTextZh": {
+    "message": "在保持原意和语气的前提下扩展文本，补充更多细节与例子。"
+  },
+  "templateExpandTextEn": {
+    "message": "Expand the text with more detail and examples while preserving the original meaning and tone."
+  },
+  "templatePromptZhLabel": {
+    "message": "Chinese prompt"
+  },
+  "templatePromptEnLabel": {
+    "message": "English prompt"
+  },
+  "templatePromptLabel": {
+    "message": "Template prompt"
+  },
+  "templatePromptPlaceholder": {
+    "message": "Edit the template prompt for this language"
+  },
+  "retryButton": {
+    "message": "Not good enough"
+  },
+  "retryInstruction": {
+    "message": "Improve the rewrite further while preserving the original meaning."
+  },
   "promptPresetDefault": {
     "message": "Default polish"
   },
@@ -56,11 +224,38 @@
   "contextToggle": {
     "message": "Use nearby context"
   },
+  "floatingButtonToggle": {
+    "message": "Show floating AI button"
+  },
   "promptPlaceholder": {
     "message": "Polish and improve this text while keeping the original meaning"
   },
   "providerLabel": {
     "message": "Provider"
+  },
+  "providerOpenaiLabel": {
+    "message": "OpenAI"
+  },
+  "providerAnthropicLabel": {
+    "message": "Anthropic"
+  },
+  "providerGeminiLabel": {
+    "message": "Google Gemini"
+  },
+  "providerXaiLabel": {
+    "message": "xAI Grok"
+  },
+  "providerOpenRouterLabel": {
+    "message": "OpenRouter"
+  },
+  "providerDeepSeekLabel": {
+    "message": "DeepSeek"
+  },
+  "providerVolcengineLabel": {
+    "message": "Volcengine (Doubao)"
+  },
+  "providerMiniMaxLabel": {
+    "message": "MiniMax"
   },
   "modelLabel": {
     "message": "Model"
@@ -91,6 +286,9 @@
   },
   "errorNoSelection": {
     "message": "No text selected. Highlight some text and try again."
+  },
+  "errorClipboardSelection": {
+    "message": "Unable to read the selection from Google Docs. Reselect the text and try again."
   },
   "errorNoApiKey": {
     "message": "API key is required for the selected provider."
@@ -139,5 +337,20 @@
   },
   "hideKey": {
     "message": "Hide"
+  },
+  "closeButtonLabel": {
+    "message": "Close"
+  },
+  "settingsHintMissingKey": {
+    "message": "Set API key"
+  },
+  "settingsHintPermission": {
+    "message": "Grant API permission"
+  },
+  "settingsHintNetwork": {
+    "message": "Network issue"
+  },
+  "settingsHintApiError": {
+    "message": "API error: {0}"
   }
 }

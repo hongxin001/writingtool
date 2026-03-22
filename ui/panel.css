@@ -51,7 +51,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(253, 251, 246, 0.1));
+  background: var(--panel-elev);
   border-bottom: 1px solid var(--border);
   cursor: grab;
   user-select: none;
@@ -65,12 +65,23 @@ body {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .header-actions {
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+.header-hint {
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 600;
+  display: none;
+  white-space: nowrap;
 }
 
 .content {
@@ -144,70 +155,29 @@ body {
 
 .textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 72px;
 }
 
 .textarea.output {
   min-height: 90px;
 }
 
-.key-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.retry {
+  margin-top: 6px;
+  align-self: flex-end;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.key-row .input {
-  flex: 1;
+.retry:hover:not(:disabled) {
+  background: rgba(15, 118, 110, 0.12);
 }
 
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text-primary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggle input {
-  display: none;
-}
-
-.toggle-track {
-  width: 44px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--border);
-  position: relative;
-  transition: background 0.2s ease;
-}
-
-.toggle-track::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--panel-elev);
-  box-shadow: 0 2px 6px var(--shadow);
-  transition: transform 0.2s ease;
-}
-
-.toggle input:checked + .toggle-track {
-  background: var(--accent);
-}
-
-.toggle input:checked + .toggle-track::after {
-  transform: translateX(20px);
-}
-
-.toggle-text {
-  color: var(--text-primary);
-  font-weight: 500;
+#ai-polish-root[data-theme="dark"] .retry:hover:not(:disabled) {
+  background: rgba(61, 214, 195, 0.18);
 }
 
 button {

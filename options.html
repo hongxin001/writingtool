@@ -1,0 +1,83 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="options.css" />
+    <title>AI Polish Settings</title>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1 data-i18n="settingsTitle">AI Polish Settings</h1>
+        <p class="subtitle" data-i18n="settingsSubtitle">
+          Manage providers, API keys, and rewrite templates.
+        </p>
+      </header>
+
+      <section>
+        <h2 data-i18n="providerSectionTitle">Provider</h2>
+        <div class="grid">
+          <label>
+            <span data-i18n="providerLabel">Provider</span>
+            <select id="providerSelect"></select>
+          </label>
+          <label>
+            <span data-i18n="modelLabel">Model</span>
+            <select id="modelSelect"></select>
+          </label>
+        </div>
+        <label>
+          <span data-i18n="customModelLabel">Custom model (optional)</span>
+          <input id="customModelInput" type="text" data-i18n-placeholder="customModelPlaceholder" />
+        </label>
+        <label>
+          <span data-i18n="apiKeyLabel">API Key</span>
+          <div class="inline">
+            <input id="apiKeyInput" type="password" data-i18n-placeholder="apiKeyPlaceholder" />
+            <button id="toggleKey" type="button" class="ghost" data-i18n="showKey">Show</button>
+          </div>
+        </label>
+      </section>
+
+      <section>
+        <h2 data-i18n="behaviorSectionTitle">Behavior</h2>
+        <label class="toggle">
+          <input id="contextToggle" type="checkbox" />
+          <span class="toggle-track"></span>
+          <span class="toggle-text" data-i18n="contextToggle">Use nearby context</span>
+        </label>
+        <label class="toggle">
+          <input id="floatingButtonToggle" type="checkbox" />
+          <span class="toggle-track"></span>
+          <span class="toggle-text" data-i18n="floatingButtonToggle">Show floating AI button</span>
+        </label>
+      </section>
+
+      <section>
+        <h2 data-i18n="templatesSectionTitle">Templates</h2>
+        <label>
+          <span data-i18n="defaultTemplateLabel">Default template</span>
+          <select id="defaultTemplateSelect"></select>
+        </label>
+        <div id="templatesList" class="templates"></div>
+        <button id="addTemplateBtn" type="button" class="primary" data-i18n="addTemplateButton">Add template</button>
+      </section>
+
+      <section>
+        <h2 data-i18n="shortcutsSectionTitle">Keyboard Shortcuts</h2>
+        <p class="subtitle" data-i18n="shortcutsSubtitle">
+          Customize shortcuts in Chrome's extension shortcuts page.
+        </p>
+        <div id="commandsList" class="commands"></div>
+        <button id="openShortcutsBtn" type="button" class="ghost" data-i18n="openShortcutsButton">
+          Open shortcuts page
+        </button>
+      </section>
+
+      <div id="statusText" class="status"></div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

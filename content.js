@@ -1,3 +1,9 @@
+(() => {
+  if (window.__aiPolishContentScriptLoaded) {
+    return;
+  }
+  window.__aiPolishContentScriptLoaded = true;
+
 const PANEL_ID = "ai-polish-panel";
 const PANEL_DEFAULT_WIDTH = 460;
 const PANEL_DEFAULT_HEIGHT = 360;
@@ -5,10 +11,29 @@ const PANEL_MIN_WIDTH = 360;
 const PANEL_MIN_HEIGHT = 260;
 const PANEL_PADDING = 10;
 const PANEL_Z_INDEX = 2147483647;
+const FLOAT_BTN_ID = "ai-polish-float-btn";
+const FLOAT_BTN_SIZE = 34;
+const FLOAT_BTN_OFFSET = 8;
+const FLOAT_BTN_POINTER_TIMEOUT = 2000;
 const CONTEXT_CHARS = 1200;
+const DEFAULT_PROVIDER_MODELS = {
+  openai: "gpt-4o",
+  anthropic: "claude-3-5-sonnet-latest",
+  gemini: "gemini-2.5-flash",
+  xai: "grok-4.20-reasoning",
+  openrouter: "openai/gpt-4o",
+  deepseek: "deepseek-chat",
+  volcengine: "doubao-pro-32k-240615",
+  minimax: "MiniMax-M2.5"
+};
 const OPENROUTER_FALLBACK_MODEL = "deepseek/deepseek-chat";
 
 let panelIframe = null;
+let floatButton = null;
+let selectionTimer = null;
+let lastPointer = { x: 0, y: 0, ts: 0 };
+let floatingButtonEnabled = true;
+let floatButtonSelection = null;
 let lastSelection = null;
 let lastOutput = "";
 let currentRequestId = 0;
@@ -49,13 +74,27 @@ window.addEventListener("message", (event) => {
     case "AI_POLISH_DRAG":
       handleDrag(data.payload || {});
       break;
+    case "AI_POLISH_HEIGHT":
+      handlePanelHeight(data.payload || {});
+      break;
     default:
       break;
   }
 });
 
-function openPanel(selectionText) {
-  lastSelection = captureSelection(selectionText);
+chrome.runtime.onMessage.addListener((msg) => {
+  if (!msg) return;
+  if (msg.type === "AI_POLISH_QUICK") {
+    handleQuickPolish();
+  }
+});
+
+setupFloatingButton();
+initFloatingButtonSetting();
+
+async function openPanel(selectionText, selectionOverride = null) {
+  if (!isExtensionContextValid()) return;
+  lastSelection = selectionOverride || captureSelection(selectionText);
   if (!panelIframe) {
     createPanel();
   }
@@ -63,6 +102,26 @@ function openPanel(selectionText) {
   panelIframe.style.display = "block";
   panelIframe.dataset.visible = "true";
   sendSelectionToPanel();
+  hideFloatButton();
+  sendToPanel({ type: "AI_POLISH_CHECK_KEY" });
+
+  if (!selectionOverride && shouldTryClipboardSelection(lastSelection)) {
+    const clipboardText = await attemptClipboardSelection();
+    if (clipboardText && clipboardText.trim()) {
+      lastSelection = {
+        type: "docs",
+        text: clipboardText,
+        editable: true
+      };
+      sendSelectionToPanel();
+      positionPanel(lastSelection);
+    } else {
+      sendToPanel({
+        type: "AI_POLISH_ERROR",
+        payload: { message: t("errorClipboardSelection") }
+      });
+    }
+  }
 }
 
 function hidePanel() {
@@ -72,9 +131,10 @@ function hidePanel() {
 }
 
 function createPanel() {
+  if (!isExtensionContextValid()) return;
   panelIframe = document.createElement("iframe");
   panelIframe.id = PANEL_ID;
-  panelIframe.src = chrome.runtime.getURL("ui/panel.html");
+  panelIframe.src = safeRuntimeGetURL("ui/panel.html");
   panelIframe.style.position = "fixed";
   panelIframe.style.top = `${PANEL_PADDING}px`;
   panelIframe.style.left = `${PANEL_PADDING}px`;
@@ -98,6 +158,227 @@ function createPanel() {
   });
 }
 
+function setupFloatingButton() {
+  ensureFloatButton();
+  document.addEventListener("selectionchange", handleSelectionUpdate, true);
+  document.addEventListener("mouseup", handleSelectionUpdate, true);
+  document.addEventListener("keyup", handleSelectionUpdate, true);
+  document.addEventListener(
+    "scroll",
+    () => {
+      hideFloatButton();
+    },
+    true
+  );
+  document.addEventListener(
+    "mousedown",
+    (event) => {
+      if (floatButton && event.target && floatButton.contains(event.target)) return;
+      hideFloatButton();
+    },
+    true
+  );
+}
+
+function handleSelectionUpdate(event) {
+  if (event && typeof event.clientX === "number" && typeof event.clientY === "number") {
+    lastPointer = { x: event.clientX, y: event.clientY, ts: Date.now() };
+  }
+  clearTimeout(selectionTimer);
+  selectionTimer = setTimeout(updateFloatButton, 60);
+}
+
+function updateFloatButton() {
+  if (isPanelVisible()) {
+    hideFloatButton();
+    return;
+  }
+  if (!floatingButtonEnabled) {
+    hideFloatButton();
+    return;
+  }
+  const target = getFloatButtonTarget();
+  if (!target) {
+    hideFloatButton();
+    return;
+  }
+  floatButtonSelection = target.selection || null;
+  showFloatButton(target.rect);
+}
+
+function ensureFloatButton() {
+  if (floatButton) return floatButton;
+  floatButton = document.createElement("button");
+  floatButton.id = FLOAT_BTN_ID;
+  floatButton.type = "button";
+  floatButton.textContent = "AI";
+  floatButton.title = t("contextMenuTitle") || "AI Polish";
+  floatButton.style.position = "fixed";
+  floatButton.style.width = `${FLOAT_BTN_SIZE}px`;
+  floatButton.style.height = `${FLOAT_BTN_SIZE}px`;
+  floatButton.style.borderRadius = "999px";
+  floatButton.style.border = "none";
+  floatButton.style.background = "linear-gradient(135deg, #1d4ed8, #38bdf8)";
+  floatButton.style.color = "#fff";
+  floatButton.style.fontSize = "12px";
+  floatButton.style.fontWeight = "600";
+  floatButton.style.cursor = "pointer";
+  floatButton.style.boxShadow = "0 10px 20px rgba(0,0,0,0.2)";
+  floatButton.style.zIndex = PANEL_Z_INDEX;
+  floatButton.style.display = "none";
+  floatButton.style.alignItems = "center";
+  floatButton.style.justifyContent = "center";
+  floatButton.style.padding = "0";
+  floatButton.style.userSelect = "none";
+  floatButton.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+  });
+  floatButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleFloatButtonClick();
+  });
+  document.documentElement.appendChild(floatButton);
+  return floatButton;
+}
+
+function showFloatButton(rect) {
+  const btn = ensureFloatButton();
+  const width = FLOAT_BTN_SIZE;
+  const height = FLOAT_BTN_SIZE;
+  let left = rect.right - width;
+  let top = rect.top - height - FLOAT_BTN_OFFSET;
+
+  left = rect.right;
+  top = rect.bottom;
+
+  left = clamp(left, PANEL_PADDING, window.innerWidth - width - PANEL_PADDING);
+  top = clamp(top, PANEL_PADDING, window.innerHeight - height - PANEL_PADDING);
+
+  btn.style.left = `${left}px`;
+  btn.style.top = `${top}px`;
+  btn.style.display = "flex";
+}
+
+function hideFloatButton() {
+  if (!floatButton) return;
+  floatButton.style.display = "none";
+}
+
+function isPanelVisible() {
+  return Boolean(panelIframe && panelIframe.dataset.visible === "true");
+}
+
+function initFloatingButtonSetting() {
+  try {
+    chrome.storage.sync.get({ aiPolishSettings: {} }, (result) => {
+      const stored = result.aiPolishSettings || {};
+      floatingButtonEnabled = stored.showFloatingButton !== false;
+      if (!floatingButtonEnabled) {
+        hideFloatButton();
+      }
+    });
+  } catch (error) {
+    // extension context invalidated
+  }
+
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "sync" || !changes.aiPolishSettings) return;
+      const next = changes.aiPolishSettings.newValue || {};
+      floatingButtonEnabled = next.showFloatingButton !== false;
+      if (!floatingButtonEnabled) {
+        hideFloatButton();
+      } else {
+        updateFloatButton();
+      }
+    });
+  } catch (error) {
+    // extension context invalidated
+  }
+}
+
+function getFloatButtonTarget() {
+  if (!hasActiveSelection()) return null;
+  if (!hasRecentPointer()) return null;
+  return {
+    rect: {
+      left: lastPointer.x,
+      right: lastPointer.x,
+      top: lastPointer.y,
+      bottom: lastPointer.y,
+      width: 0,
+      height: 0
+    },
+    selection: captureSelection("")
+  };
+}
+
+function hasActiveSelection() {
+  const active = getDeepActiveElement();
+  if (isTextInput(active)) {
+    const start = active.selectionStart;
+    const end = active.selectionEnd;
+    if (typeof start === "number" && typeof end === "number" && start !== end) {
+      return true;
+    }
+  }
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+    return true;
+  }
+  return false;
+}
+
+function hasRecentPointer() {
+  if (!lastPointer || (!lastPointer.x && !lastPointer.y)) return false;
+  return Date.now() - (lastPointer.ts || 0) <= FLOAT_BTN_POINTER_TIMEOUT;
+}
+
+async function handleFloatButtonClick() {
+  hideFloatButton();
+  if (floatButtonSelection?.text && floatButtonSelection.text.trim()) {
+    await openPanel("", floatButtonSelection);
+  } else {
+    await openPanel("");
+  }
+
+  if (!lastSelection?.text || !lastSelection.text.trim()) {
+    if (!shouldTryClipboardSelection(lastSelection)) {
+      sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNoSelection") } });
+    }
+    return;
+  }
+
+  chrome.storage.sync.get({ aiPolishSettings: {} }, (result) => {
+    const stored = result.aiPolishSettings || {};
+    const provider = stored.provider || "openai";
+    const model =
+      stored.customModels?.[provider] ||
+      stored.models?.[provider] ||
+      DEFAULT_PROVIDER_MODELS[provider] ||
+      DEFAULT_PROVIDER_MODELS.openai;
+    const apiKey = stored.apiKeys?.[provider] || "";
+    const prompt = getTemplatePrompt(stored, lastSelection?.text || "");
+    const useContext = stored.useContext !== false;
+
+    if (!apiKey) {
+      sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorMissingSettings") } });
+      return;
+    }
+
+    handleGenerate({
+      provider,
+      model,
+      apiKey,
+      prompt,
+      useContext,
+      autoReplace: false,
+      autoClose: false
+    });
+  });
+}
+
 function sendToPanel(message) {
   if (!panelIframe || !panelIframe.contentWindow) return;
   panelIframe.contentWindow.postMessage(message, "*");
@@ -107,7 +388,10 @@ function sendSelectionToPanel() {
   if (!panelIframe || !panelIframe.contentWindow) return;
   const text = lastSelection?.text || "";
   const editable = Boolean(lastSelection?.editable);
+  lastOutput = "";
   sendToPanel({ type: "AI_POLISH_SELECTION", payload: { text, editable } });
+  sendToPanel({ type: "AI_POLISH_CLEAR_OUTPUT" });
+  sendToPanel({ type: "AI_POLISH_CHECK_KEY" });
 }
 
 function positionPanel(selection) {
@@ -145,7 +429,7 @@ function getSelectionRect(selection) {
 }
 
 function captureSelection(fallbackText) {
-  const active = document.activeElement;
+  const active = getDeepActiveElement();
   if (isTextInput(active)) {
     const start = active.selectionStart;
     const end = active.selectionEnd;
@@ -198,7 +482,7 @@ function isRangeEditable(range) {
   const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
   if (!element) return false;
   const editable = element.closest(
-    "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']"
+    "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only'], [role='textbox']"
   );
   return Boolean(editable);
 }
@@ -236,7 +520,7 @@ async function handleGenerate(payload) {
         sendToPanel({ type: "AI_POLISH_STREAM", payload: { text: partial } });
       }
     });
-    fullText = result || "";
+    fullText = sanitizeModelOutput(result || "");
     if (!fullText || !fullText.trim()) {
       throw new Error(t("errorEmptyResult"));
     }
@@ -244,6 +528,14 @@ async function handleGenerate(payload) {
     if (requestId !== currentRequestId) return;
     lastOutput = fullText;
     sendToPanel({ type: "AI_POLISH_RESULT", payload: { text: fullText } });
+
+    if (payload.autoReplace && lastSelection?.editable) {
+      replaceSelection(fullText);
+      sendToPanel({ type: "AI_POLISH_STATUS", payload: { message: t("statusReplaced") } });
+      if (payload.autoClose) {
+        hidePanel();
+      }
+    }
   } catch (error) {
     sendToPanel({
       type: "AI_POLISH_ERROR",
@@ -312,66 +604,41 @@ function handleDrag(payload) {
   panelIframe.style.top = `${clamp(top, PANEL_PADDING, window.innerHeight - height - PANEL_PADDING)}px`;
 }
 
+function handlePanelHeight(payload) {
+  if (!panelIframe) return;
+  const desired = Number(payload.height || 0);
+  if (!Number.isFinite(desired) || desired <= 0) return;
+
+  const maxHeight = Math.max(PANEL_MIN_HEIGHT, window.innerHeight - PANEL_PADDING * 2);
+  const height = clamp(desired, PANEL_MIN_HEIGHT, maxHeight);
+  panelIframe.style.height = `${height}px`;
+
+  const width = panelIframe.offsetWidth || PANEL_DEFAULT_WIDTH;
+  const left = parseFloat(panelIframe.style.left || "0");
+  const top = parseFloat(panelIframe.style.top || "0");
+  panelIframe.style.left = `${clamp(left, PANEL_PADDING, window.innerWidth - width - PANEL_PADDING)}px`;
+  panelIframe.style.top = `${clamp(top, PANEL_PADDING, window.innerHeight - height - PANEL_PADDING)}px`;
+}
+
 function replaceSelection(text) {
   if (!lastSelection) return;
   if (lastSelection.type === "input") {
-    const el = lastSelection.element;
-    const start = lastSelection.start;
-    const end = lastSelection.end;
-    const value = el.value;
-    el.value = value.slice(0, start) + text + value.slice(end);
-    const cursor = start + text.length;
-    el.setSelectionRange(cursor, cursor);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    replaceInputSelection(lastSelection.element, lastSelection.start, lastSelection.end, text);
   } else if (lastSelection.type === "range") {
-    const range = lastSelection.range;
-    range.deleteContents();
-    const node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.setEndAfter(node);
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    const editableRoot = node.parentElement?.closest(
-      "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']"
-    );
-    if (editableRoot) {
-      editableRoot.dispatchEvent(new Event("input", { bubbles: true }));
-    }
+    replaceRangeSelection(text);
+  } else if (lastSelection.type === "docs") {
+    replaceDocsSelection(text);
   }
 }
 
 function insertAfterSelection(text) {
   if (!lastSelection) return;
   if (lastSelection.type === "input") {
-    const el = lastSelection.element;
-    const end = lastSelection.end;
-    const value = el.value;
-    el.value = value.slice(0, end) + text + value.slice(end);
-    const cursor = end + text.length;
-    el.setSelectionRange(cursor, cursor);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    insertAfterInputSelection(lastSelection.element, lastSelection.end, text);
   } else if (lastSelection.type === "range") {
-    const range = lastSelection.range;
-    range.collapse(false);
-    const node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.setEndAfter(node);
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    const editableRoot = node.parentElement?.closest(
-      "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']"
-    );
-    if (editableRoot) {
-      editableRoot.dispatchEvent(new Event("input", { bubbles: true }));
-    }
+    insertAfterRangeSelection(text);
+  } else if (lastSelection.type === "docs") {
+    insertAfterDocsSelection(text);
   }
 }
 
@@ -403,6 +670,12 @@ async function generateText({ provider, model, apiKey, prompt, text, context, on
       return generateXAI({ apiKey, model, prompt, text, context, onToken });
     case "openrouter":
       return generateOpenRouter({ apiKey, model, prompt, text, context, onToken });
+    case "deepseek":
+      return generateDeepSeek({ apiKey, model, prompt, text, context, onToken });
+    case "volcengine":
+      return generateVolcengine({ apiKey, model, prompt, text, context, onToken });
+    case "minimax":
+      return generateMiniMax({ apiKey, model, prompt, text, context, onToken });
     default:
       throw new Error(t("errorUnsupportedProvider"));
   }
@@ -410,6 +683,7 @@ async function generateText({ provider, model, apiKey, prompt, text, context, on
 
 async function generateOpenAI({ apiKey, model, prompt, text, context, onToken }) {
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const response = await safeFetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -419,7 +693,7 @@ async function generateOpenAI({ apiKey, model, prompt, text, context, onToken })
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
       ],
       stream: true
@@ -452,6 +726,7 @@ async function generateOpenAI({ apiKey, model, prompt, text, context, onToken })
 
 async function generateAnthropic({ apiKey, model, prompt, text, context, onToken }) {
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const response = await safeFetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -462,7 +737,7 @@ async function generateAnthropic({ apiKey, model, prompt, text, context, onToken
     body: JSON.stringify({
       model,
       max_tokens: 1024,
-      system: prompt,
+      system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
       stream: true
     })
@@ -495,6 +770,7 @@ async function generateAnthropic({ apiKey, model, prompt, text, context, onToken
 
 async function generateGemini({ apiKey, model, prompt, text, context, onToken }) {
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;
   const response = await safeFetch(url, {
     method: "POST",
@@ -505,7 +781,7 @@ async function generateGemini({ apiKey, model, prompt, text, context, onToken })
     body: JSON.stringify({
       contents: [
         {
-          parts: [{ text: `${prompt}\\n\\n${userContent}`.trim() }]
+          parts: [{ text: `${systemPrompt}\\n\\n${userContent}`.trim() }]
         }
       ]
     })
@@ -536,6 +812,7 @@ async function generateGemini({ apiKey, model, prompt, text, context, onToken })
 
 async function generateXAI({ apiKey, model, prompt, text, context, onToken }) {
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const response = await safeFetch("https://api.x.ai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -545,7 +822,7 @@ async function generateXAI({ apiKey, model, prompt, text, context, onToken }) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
       ],
       stream: true
@@ -582,6 +859,7 @@ async function generateOpenRouter({ apiKey, model, prompt, text, context, onToke
     throw new Error(t("errorNoApiKey"));
   }
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const titleHeader = safeHeaderValue(chrome.runtime.getManifest().name, "AI Polish");
   const headers = {
     "Content-Type": "application/json",
@@ -597,7 +875,7 @@ async function generateOpenRouter({ apiKey, model, prompt, text, context, onToke
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
       ],
       stream: true
@@ -687,6 +965,7 @@ async function generateOpenRouter({ apiKey, model, prompt, text, context, onToke
 
 async function generateOpenRouterNonStream({ apiKey, model, prompt, text, context, headers }) {
   const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
   const response = await safeFetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: headers || {
@@ -697,7 +976,7 @@ async function generateOpenRouterNonStream({ apiKey, model, prompt, text, contex
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: prompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
       ],
       stream: false
@@ -712,6 +991,85 @@ async function generateOpenRouterNonStream({ apiKey, model, prompt, text, contex
   const err = extractOpenRouterError(json);
   if (err) throw new Error(err);
   return extractOpenAIContent(json);
+}
+
+async function generateDeepSeek({ apiKey, model, prompt, text, context, onToken }) {
+  return generateOpenAICompatible({
+    url: "https://api.deepseek.com/chat/completions",
+    apiKey,
+    model,
+    prompt,
+    text,
+    context,
+    onToken
+  });
+}
+
+async function generateVolcengine({ apiKey, model, prompt, text, context, onToken }) {
+  return generateOpenAICompatible({
+    url: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    apiKey,
+    model,
+    prompt,
+    text,
+    context,
+    onToken
+  });
+}
+
+async function generateMiniMax({ apiKey, model, prompt, text, context, onToken }) {
+  return generateOpenAICompatible({
+    url: "https://api.minimax.io/v1/chat/completions",
+    apiKey,
+    model,
+    prompt,
+    text,
+    context,
+    onToken
+  });
+}
+
+async function generateOpenAICompatible({ url, apiKey, model, prompt, text, context, onToken }) {
+  const userContent = buildUserContent(text, context);
+  const systemPrompt = composeSystemPrompt(prompt);
+  const response = await safeFetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent }
+      ],
+      stream: true
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!response.body || !contentType.includes("text/event-stream")) {
+    const json = await response.json();
+    return extractOpenAIContent(json);
+  }
+
+  let fullText = "";
+  await streamSSE(response, (data) => {
+    if (data === "[DONE]") return;
+    const json = safeJsonParse(data);
+    const delta = extractOpenAIDelta(json);
+    if (delta) {
+      fullText += delta;
+      if (onToken) onToken(fullText, delta);
+    }
+  });
+
+  return fullText;
 }
 
 async function streamSSE(response, onData) {
@@ -847,6 +1205,9 @@ function buildSelectionContext(selection) {
   if (selection.type === "input" && selection.element) {
     return buildContextFromText(selection.element.value || "", selection.start, selection.end);
   }
+  if (selection.type === "docs") {
+    return "";
+  }
   if (selection.type === "range" && selection.range) {
     return buildContextFromRange(selection.range);
   }
@@ -884,7 +1245,7 @@ function findContextRoot(range) {
   const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
   if (!element) return document.body;
   const editable = element.closest(
-    "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']"
+    "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only'], [role='textbox']"
   );
   if (editable) return editable;
   const block = element.closest(
@@ -915,8 +1276,299 @@ function formatContext(before, after) {
 function buildUserContent(text, context) {
   const target = String(text || "").trim();
   const ctx = String(context || "").trim();
-  if (!ctx) return target;
-  return `Context:\n${ctx}\n\nTarget:\n${target}\n\nRewrite only the Target text.`;
+  if (!ctx) {
+    return `Target:\n<<<${target}>>>\n\nRewrite only the text inside <<<>>>. Output ONLY the rewritten text.`;
+  }
+  return `Context:\n${ctx}\n\nTarget:\n<<<${target}>>>\n\nRewrite only the text inside <<<>>>. Output ONLY the rewritten text.`;
+}
+
+function composeSystemPrompt(prompt) {
+  const base = String(prompt || "").trim();
+  const guard =
+    "You must output ONLY the rewritten Target text. Do not include context, labels, explanations, or quotes.";
+  if (!base) return guard;
+  return `${base}\n\n${guard}`;
+}
+
+function sanitizeModelOutput(text) {
+  let output = String(text || "").trim();
+  if (!output) return output;
+
+  if (output.includes("```")) {
+    const fence = output.match(/```(?:\w+)?\s*([\s\S]*?)```/);
+    if (fence && fence[1]) {
+      output = fence[1].trim();
+    }
+  }
+
+  const marker = output.match(/<<<([\s\S]*?)>>>/);
+  if (marker && marker[1]) {
+    return marker[1].trim();
+  }
+
+  const hasContext = /Context:\s*/i.test(output) && /Target:\s*/i.test(output);
+  if (hasContext) {
+    const idx = output.lastIndexOf("Target:");
+    if (idx !== -1) {
+      output = output.slice(idx + "Target:".length).trim();
+    }
+  }
+
+  output = output.replace(/^(Result|Rewrite|Output|Answer|答案|结果|改写)[:：]\s*/i, "");
+
+  if (
+    (output.startsWith('"') && output.endsWith('"')) ||
+    (output.startsWith("“") && output.endsWith("”"))
+  ) {
+    output = output.slice(1, -1).trim();
+  }
+
+  return output;
+}
+
+function getDeepActiveElement() {
+  let active = document.activeElement;
+  while (active && active.shadowRoot && active.shadowRoot.activeElement) {
+    active = active.shadowRoot.activeElement;
+  }
+  return active;
+}
+
+function replaceInputSelection(element, start, end, text) {
+  const el = element;
+  if (!el) return;
+  try {
+    if (typeof el.setRangeText === "function") {
+      el.setRangeText(text, start, end, "end");
+    } else {
+      const value = el.value || "";
+      el.value = value.slice(0, start) + text + value.slice(end);
+      const cursor = start + text.length;
+      el.setSelectionRange(cursor, cursor);
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  } catch (error) {
+    // ignore
+  }
+}
+
+function insertAfterInputSelection(element, end, text) {
+  const el = element;
+  if (!el) return;
+  try {
+    if (typeof el.setRangeText === "function") {
+      el.setRangeText(text, end, end, "end");
+    } else {
+      const value = el.value || "";
+      el.value = value.slice(0, end) + text + value.slice(end);
+      const cursor = end + text.length;
+      el.setSelectionRange(cursor, cursor);
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  } catch (error) {
+    // ignore
+  }
+}
+
+function replaceRangeSelection(text) {
+  const selection = window.getSelection();
+  const range =
+    (selection && selection.rangeCount > 0 && selection.getRangeAt(0)) || lastSelection?.range;
+  if (!range) return;
+
+  const editableRoot = findEditableRoot(range);
+  if (editableRoot) editableRoot.focus();
+
+  if (tryExecInsertText(text)) {
+    dispatchEditableInput(editableRoot);
+    return;
+  }
+
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.setEndAfter(node);
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  dispatchEditableInput(node.parentElement);
+}
+
+function insertAfterRangeSelection(text) {
+  const selection = window.getSelection();
+  const range =
+    (selection && selection.rangeCount > 0 && selection.getRangeAt(0)) || lastSelection?.range;
+  if (!range) return;
+
+  const editableRoot = findEditableRoot(range);
+  if (editableRoot) editableRoot.focus();
+
+  range.collapse(false);
+  if (tryExecInsertText(text)) {
+    dispatchEditableInput(editableRoot);
+    return;
+  }
+
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.setEndAfter(node);
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  dispatchEditableInput(node.parentElement);
+}
+
+function tryExecInsertText(text) {
+  try {
+    if (document.queryCommandSupported && !document.queryCommandSupported("insertText")) {
+      return false;
+    }
+    return document.execCommand("insertText", false, text);
+  } catch (error) {
+    return false;
+  }
+}
+
+function dispatchEditableInput(element) {
+  const root = element ? element.closest("[contenteditable], [role='textbox']") : null;
+  if (!root) return;
+  root.dispatchEvent(new Event("input", { bubbles: true }));
+  root.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function findEditableRoot(range) {
+  const node = range.commonAncestorContainer;
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!element) return null;
+  return element.closest(
+    "[contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only'], [role='textbox']"
+  );
+}
+
+async function handleQuickPolish() {
+  if (!isExtensionContextValid()) return;
+  let selection = captureSelection("");
+
+  if (shouldTryClipboardSelection(selection)) {
+    const clipboardText = await attemptClipboardSelection();
+    if (clipboardText && clipboardText.trim()) {
+      selection = { type: "docs", text: clipboardText, editable: true };
+    }
+  }
+
+  lastSelection = selection;
+
+  if (!selection?.text || !selection.text.trim()) {
+    openPanel("");
+    if (!shouldTryClipboardSelection(selection)) {
+      sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNoSelection") } });
+    }
+    return;
+  }
+
+  chrome.storage.sync.get({ aiPolishSettings: {} }, (result) => {
+    const stored = result.aiPolishSettings || {};
+    const provider = stored.provider || "openai";
+    const model =
+      stored.customModels?.[provider] ||
+      stored.models?.[provider] ||
+      DEFAULT_PROVIDER_MODELS[provider] ||
+      DEFAULT_PROVIDER_MODELS.openai;
+    const apiKey = stored.apiKeys?.[provider] || "";
+    const prompt = getTemplatePrompt(stored, selection.text || "");
+    const useContext = stored.useContext !== false;
+
+    if (selection?.text && selection.text.trim()) {
+      openPanel("", selection);
+    } else {
+      openPanel("");
+    }
+
+    if (!apiKey) {
+      sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorMissingSettings") } });
+      return;
+    }
+
+    handleGenerate({
+      provider,
+      model,
+      apiKey,
+      prompt,
+      useContext,
+      autoReplace: true,
+      autoClose: true
+    });
+  });
+}
+
+function getTemplatePrompt(settings, selectionText = "") {
+  const templates = Array.isArray(settings.templates) ? settings.templates : [];
+  if (templates.length) {
+    const active =
+      templates.find((item) => item.id === settings.activeTemplateId) || templates[0];
+    const lang = detectDominantLanguage(selectionText);
+    const prompt = selectTemplateText(resolveLegacyTranslateTemplate(active, templates, lang), lang);
+    if (prompt) return prompt;
+  }
+  const fallbackLang = detectDominantLanguage(selectionText);
+  if (fallbackLang === "zh") {
+    return (
+      chrome.i18n.getMessage("templateDefaultTextZh") ||
+      chrome.i18n.getMessage("templateDefaultText") ||
+      chrome.i18n.getMessage("defaultPrompt") ||
+      "Polish and improve this text while keeping the original meaning."
+    );
+  }
+  if (fallbackLang === "en") {
+    return (
+      chrome.i18n.getMessage("templateDefaultTextEn") ||
+      chrome.i18n.getMessage("templateDefaultText") ||
+      chrome.i18n.getMessage("defaultPrompt") ||
+      "Polish and improve this text while keeping the original meaning."
+    );
+  }
+  return (
+    chrome.i18n.getMessage("templateDefaultText") ||
+    chrome.i18n.getMessage("defaultPrompt") ||
+    "Polish and improve this text while keeping the original meaning."
+  );
+}
+
+function resolveLegacyTranslateTemplate(active, templates, lang) {
+  if (!active) return active;
+  if (active.id !== "translate_en" && active.id !== "translate_zh") return active;
+  const translateEn = templates.find((item) => item.id === "translate_en") || active;
+  const translateZh = templates.find((item) => item.id === "translate_zh") || active;
+  if (lang === "zh") return translateEn || active;
+  if (lang === "en") return translateZh || active;
+  return active;
+}
+
+function selectTemplateText(template, lang) {
+  if (!template) return "";
+  const zh = String(template.textZh || "").trim();
+  const en = String(template.textEn || "").trim();
+  const fallback = String(template.text || "").trim();
+  if (lang === "zh") return zh || en || fallback;
+  if (lang === "en") return en || zh || fallback;
+  return zh || en || fallback;
+}
+
+function detectDominantLanguage(text) {
+  const sample = String(text || "").slice(0, 2000);
+  if (!sample) return "en";
+  const cjk = (sample.match(/[\u4E00-\u9FFF]/g) || []).length;
+  const latin = (sample.match(/[A-Za-z]/g) || []).length;
+  if (!cjk && !latin) return "en";
+  if (cjk >= latin * 1.2) return "zh";
+  if (latin >= cjk * 1.2) return "en";
+  return cjk >= latin ? "zh" : "en";
 }
 
 async function readError(response) {
@@ -943,7 +1595,15 @@ function normalizeProvider(provider, model) {
     "grok": "xai",
     "openrouter": "openrouter",
     "openrouter.ai": "openrouter",
-    "open router": "openrouter"
+    "open router": "openrouter",
+    "deepseek": "deepseek",
+    "deepseek ai": "deepseek",
+    "volcengine": "volcengine",
+    "volcano": "volcengine",
+    "doubao": "volcengine",
+    "ark": "volcengine",
+    "byte": "volcengine",
+    "minimax": "minimax"
   };
 
   if (aliases[key]) return aliases[key];
@@ -974,3 +1634,75 @@ function sanitizeToken(value) {
   }
   return text;
 }
+
+function isExtensionContextValid() {
+  try {
+    return Boolean(chrome?.runtime?.id);
+  } catch (error) {
+    return false;
+  }
+}
+
+function safeRuntimeGetURL(path) {
+  try {
+    return chrome.runtime.getURL(path);
+  } catch (error) {
+    return "";
+  }
+}
+
+function isGoogleDocs() {
+  return (
+    location.hostname === "docs.google.com" &&
+    location.pathname.startsWith("/document/")
+  );
+}
+
+function shouldTryClipboardSelection(selection) {
+  return isGoogleDocs() && (!selection?.text || !selection.text.trim());
+}
+
+async function attemptClipboardSelection() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    return "";
+  }
+  try {
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (error) {
+      copied = false;
+    }
+    if (!copied) return "";
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const text = await navigator.clipboard.readText();
+    return text || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function replaceDocsSelection(text) {
+  if (!text) return;
+  const active = getDeepActiveElement();
+  if (active && typeof active.focus === "function") {
+    active.focus();
+  }
+  if (tryExecInsertText(text)) {
+    dispatchEditableInput(active);
+  }
+}
+
+function insertAfterDocsSelection(text) {
+  if (!text) return;
+  const active = getDeepActiveElement();
+  if (active && typeof active.focus === "function") {
+    active.focus();
+  }
+  const combined = `${lastSelection?.text || ""}${text}`;
+  if (tryExecInsertText(combined)) {
+    dispatchEditableInput(active);
+  }
+}
+
+})();
