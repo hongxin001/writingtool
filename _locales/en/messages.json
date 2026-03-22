@@ -41,6 +41,12 @@
   "templatesSectionTitle": {
     "message": "Templates"
   },
+  "templatesHelpAria": {
+    "message": "Templates help"
+  },
+  "templatesHelpText": {
+    "message": "Each template has separate Chinese and English prompts. The app automatically uses the one that matches the selected text's language. Edits in the floating panel apply only to the current run; edits here update the saved template."
+  },
   "shortcutsSectionTitle": {
     "message": "Keyboard Shortcuts"
   },
@@ -77,6 +83,9 @@
   "templateConciseName": {
     "message": "Concise rewrite"
   },
+  "templateShortName": {
+    "message": "Short form"
+  },
   "templateProfessionalName": {
     "message": "Professional tone"
   },
@@ -106,6 +115,12 @@
   },
   "templateConciseTextEn": {
     "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "templateShortTextZh": {
+    "message": "将文本简写为更短的版本，保留关键信息，必要时用要点呈现。"
+  },
+  "templateShortTextEn": {
+    "message": "Condense into a short version that keeps key points; use bullet points if helpful."
   },
   "templateProfessionalText": {
     "message": "Rewrite in a professional, business-appropriate tone while preserving the original meaning."
@@ -314,11 +329,20 @@
   "errorEmptyResult": {
     "message": "No result was returned. Please try again."
   },
+  "errorDocsReplace": {
+    "message": "Unable to replace in Google Docs. The result is copied to clipboard."
+  },
+  "errorDocsInsert": {
+    "message": "Unable to insert in Google Docs. The result is copied to clipboard."
+  },
+  "replaceNoticeUnsupported": {
+    "message": "Replace/Insert is not supported here. Use Copy to paste the result manually."
+  },
   "statusGenerating": {
     "message": "Generating..."
   },
   "statusCopied": {
-    "message": "Copied to clipboard."
+    "message": "Copied. You can paste it into your document."
   },
   "statusReplaced": {
     "message": "Selection replaced."

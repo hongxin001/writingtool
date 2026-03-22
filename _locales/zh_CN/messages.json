@@ -41,6 +41,12 @@
   "templatesSectionTitle": {
     "message": "模板"
   },
+  "templatesHelpAria": {
+    "message": "模板说明"
+  },
+  "templatesHelpText": {
+    "message": "每个模板包含中文和英文提示词，系统会根据选中文本语言自动使用对应版本。悬浮窗中编辑仅对当次生效，在此页面编辑会保存到模板。"
+  },
   "shortcutsSectionTitle": {
     "message": "快捷键"
   },
@@ -77,6 +83,9 @@
   "templateConciseName": {
     "message": "简洁改写"
   },
+  "templateShortName": {
+    "message": "简写"
+  },
   "templateProfessionalName": {
     "message": "正式商务"
   },
@@ -106,6 +115,12 @@
   },
   "templateConciseTextEn": {
     "message": "Rewrite to be concise and clear while preserving the original meaning."
+  },
+  "templateShortTextZh": {
+    "message": "将文本简写为更短的版本，保留关键信息，必要时用要点呈现。"
+  },
+  "templateShortTextEn": {
+    "message": "Condense into a short version that keeps key points; use bullet points if helpful."
   },
   "templateProfessionalText": {
     "message": "在保持原意的前提下，以正式商务语气改写。"
@@ -314,11 +329,20 @@
   "errorEmptyResult": {
     "message": "未返回结果，请重试。"
   },
+  "errorDocsReplace": {
+    "message": "无法在 Google 文档中替换，已复制到剪贴板。"
+  },
+  "errorDocsInsert": {
+    "message": "无法在 Google 文档中插入，已复制到剪贴板。"
+  },
+  "replaceNoticeUnsupported": {
+    "message": "当前页面不支持替换/插入，请使用复制后手动粘贴。"
+  },
   "statusGenerating": {
     "message": "生成中..."
   },
   "statusCopied": {
-    "message": "已复制到剪贴板。"
+    "message": "已复制，可直接粘贴到文档。"
   },
   "statusReplaced": {
     "message": "已替换选中文本。"

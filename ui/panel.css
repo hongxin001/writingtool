@@ -84,6 +84,7 @@ body {
   white-space: nowrap;
 }
 
+
 .content {
   flex: 1;
   overflow: auto;
@@ -186,6 +187,9 @@ button {
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.1s ease, background 0.2s ease, color 0.2s ease;
 }
 
@@ -240,7 +244,18 @@ button:disabled {
 .status {
   font-size: 12px;
   color: var(--text-secondary);
-  text-align: right;
+  text-align: left;
+}
+
+.header-status {
+  min-width: 120px;
+}
+
+
+.notice {
+  font-size: 12px;
+  color: var(--danger);
+  display: none;
 }
 
 .error {
@@ -248,6 +263,7 @@ button:disabled {
   color: var(--danger);
   min-height: 16px;
 }
+
 
 .loading-indicator {
   display: inline-flex;

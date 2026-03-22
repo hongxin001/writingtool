@@ -39,6 +39,38 @@ section h2 {
   font-size: 16px;
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+.info-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #e7e1d8;
+  background: #fefbf6;
+  color: #0f766e;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  padding: 0;
+}
+
+.info-icon:hover {
+  border-color: #0f766e;
+}
+
 label {
   display: block;
   margin-bottom: 12px;

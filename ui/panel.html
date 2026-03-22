@@ -12,9 +12,9 @@
         <div class="title">
           <span data-i18n="uiTitle">AI Polish</span>
           <span id="headerHint" class="header-hint"></span>
+          <span id="statusText" class="status header-status"></span>
         </div>
         <div class="header-actions">
-          <span id="settingsHint" class="settings-hint"></span>
           <button id="settingsBtn" class="ghost small" type="button" data-i18n="settingsButton">Settings</button>
           <button id="closeBtn" class="ghost close" type="button" aria-label="Close">x</button>
         </div>
@@ -38,7 +38,6 @@
 
         <div class="row actions-top">
           <button id="generateBtn" class="primary" type="button" data-i18n="generateButton">Generate</button>
-          <div id="statusText" class="status"></div>
         </div>
 
         <div class="section">
@@ -52,7 +51,7 @@
           <button id="insertBtn" class="secondary" type="button" data-i18n="insertAfterButton">Insert after</button>
           <button id="copyBtn" class="secondary" type="button" data-i18n="copyButton">Copy</button>
         </div>
-
+        <div id="replaceNotice" class="notice"></div>
         <div id="errorText" class="error"></div>
       </div>
     </div>

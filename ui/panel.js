@@ -31,6 +31,7 @@ const elements = {
   copyBtn: document.getElementById("copyBtn"),
   retryBtn: document.getElementById("retryBtn"),
   headerHint: document.getElementById("headerHint"),
+  replaceNotice: document.getElementById("replaceNotice"),
   statusText: document.getElementById("statusText"),
   errorText: document.getElementById("errorText"),
   closeBtn: document.getElementById("closeBtn"),
@@ -39,7 +40,9 @@ const elements = {
 
 let settings = { ...DEFAULT_SETTINGS };
 let selectionEditable = false;
+let selectionCanReplace = true;
 let selectionLanguage = "unknown";
+let isGenerating = false;
 let saveTimer = null;
 let resizeRaf = null;
 let promptOverrides = {};
@@ -523,7 +526,10 @@ function getModelForProvider(provider) {
 function updateSelection(payload) {
   const text = (payload?.text || "").trim();
   selectionEditable = Boolean(payload?.editable);
+  selectionCanReplace =
+    typeof payload?.canReplace === "boolean" ? payload.canReplace : selectionEditable;
   updateActionButtons();
+  updateReplaceNotice(text);
 
   if (!text) {
     elements.selectionPreview.textContent = chrome.i18n.getMessage("errorNoSelection");
@@ -555,13 +561,18 @@ function clearOutput() {
   elements.outputArea.value = "";
   elements.outputArea.readOnly = false;
   clearError();
-  setLoading(false);
+  const keepStatus = isGenerating || elements.statusText.classList.contains("loading-indicator");
+  if (!keepStatus) {
+    setLoading(false);
+    showStatus("");
+  }
   hideSettingsHint();
   updateActionButtons();
   requestHeightUpdate();
 }
 
 function setLoading(isLoading, message) {
+  isGenerating = isLoading;
   elements.generateBtn.disabled = isLoading;
   elements.generateBtn.classList.toggle("loading", isLoading);
   if (message) {
@@ -574,13 +585,19 @@ function setLoading(isLoading, message) {
 }
 
 function showStatus(message, loading = false) {
-  elements.statusText.textContent = message || "";
-  elements.statusText.classList.toggle("loading-indicator", loading);
+  const text = message || "";
+  if (!elements.statusText) return;
+  if (text) {
+    showSettingsHint("");
+  }
+  elements.statusText.textContent = text;
+  elements.statusText.classList.toggle("loading-indicator", loading && Boolean(text));
   requestHeightUpdate();
 }
 
 function showError(message) {
-  elements.errorText.textContent = message || "";
+  elements.errorText.textContent = "";
+  showSettingsHint(message || "");
   maybeShowSettingsHintForError(message || "");
   requestHeightUpdate();
 }
@@ -591,9 +608,14 @@ function clearError() {
 }
 
 function showSettingsHint(message) {
+  const text = message || "";
   if (!elements.headerHint) return;
-  elements.headerHint.textContent = message || "";
-  elements.headerHint.style.display = message ? "inline-flex" : "none";
+  elements.headerHint.textContent = text;
+  elements.headerHint.style.display = text ? "inline-flex" : "none";
+  if (text && elements.statusText) {
+    elements.statusText.textContent = "";
+    elements.statusText.classList.remove("loading-indicator");
+  }
   requestHeightUpdate();
 }
 
@@ -624,6 +646,10 @@ function maybeShowSettingsHintForError(message) {
     lower.includes("invalid api key")
   ) {
     showSettingsHint(getHintMessage("missingKey"));
+    return;
+  }
+  if (lower.includes("google docs") || lower.includes("google 文档")) {
+    showSettingsHint(text);
     return;
   }
   if (lower.includes("missing host permission")) {
@@ -659,12 +685,26 @@ function getHintMessage(type, detail = "") {
 
 function updateActionButtons() {
   const hasOutput = Boolean(elements.outputArea.value.trim());
-  elements.copyBtn.disabled = !hasOutput;
-  elements.replaceBtn.disabled = !selectionEditable || !hasOutput;
-  elements.insertBtn.disabled = !selectionEditable || !hasOutput;
+  const disableActions = isGenerating;
+  elements.copyBtn.disabled = !hasOutput || disableActions;
+  const canUseReplace = selectionEditable && selectionCanReplace;
+  elements.replaceBtn.disabled = !canUseReplace || !hasOutput || disableActions;
+  elements.insertBtn.disabled = !canUseReplace || !hasOutput || disableActions;
+  elements.replaceBtn.style.display = canUseReplace ? "inline-flex" : "none";
+  elements.insertBtn.style.display = canUseReplace ? "inline-flex" : "none";
   if (elements.retryBtn) {
-    elements.retryBtn.disabled = !hasOutput;
+    elements.retryBtn.disabled = !hasOutput || disableActions;
   }
+}
+
+function updateReplaceNotice(text) {
+  if (!elements.replaceNotice) return;
+  const shouldShow = Boolean(text) && selectionEditable && !selectionCanReplace;
+  elements.replaceNotice.textContent = shouldShow
+    ? chrome.i18n.getMessage("replaceNoticeUnsupported")
+    : "";
+  elements.replaceNotice.style.display = shouldShow ? "block" : "none";
+  requestHeightUpdate();
 }
 
 function detectDominantLanguage(text) {

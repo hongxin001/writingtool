@@ -37,6 +37,9 @@ let floatButtonSelection = null;
 let lastSelection = null;
 let lastOutput = "";
 let currentRequestId = 0;
+let docsIframeListenerAttached = false;
+let panelReady = false;
+let lastStatusPayload = null;
 
 const t = (key, substitutions) => chrome.i18n.getMessage(key, substitutions);
 
@@ -51,9 +54,13 @@ window.addEventListener("message", (event) => {
 
   switch (data.type) {
     case "AI_POLISH_READY":
+      panelReady = true;
       sendSelectionToPanel();
       if (lastOutput) {
         sendToPanel({ type: "AI_POLISH_RESULT", payload: { text: lastOutput } });
+      }
+      if (lastStatusPayload) {
+        sendToPanel({ type: "AI_POLISH_STATUS", payload: lastStatusPayload });
       }
       break;
     case "AI_POLISH_CLOSE":
@@ -63,10 +70,10 @@ window.addEventListener("message", (event) => {
       handleGenerate(data.payload || {});
       break;
     case "AI_POLISH_REPLACE":
-      handleReplace(data.payload || {});
+      void handleReplace(data.payload || {});
       break;
     case "AI_POLISH_INSERT_AFTER":
-      handleInsertAfter(data.payload || {});
+      void handleInsertAfter(data.payload || {});
       break;
     case "AI_POLISH_COPY":
       handleCopy(data.payload || {});
@@ -128,10 +135,12 @@ function hidePanel() {
   if (!panelIframe) return;
   panelIframe.style.display = "none";
   panelIframe.dataset.visible = "false";
+  panelReady = false;
 }
 
 function createPanel() {
   if (!isExtensionContextValid()) return;
+  panelReady = false;
   panelIframe = document.createElement("iframe");
   panelIframe.id = PANEL_ID;
   panelIframe.src = safeRuntimeGetURL("ui/panel.html");
@@ -178,6 +187,7 @@ function setupFloatingButton() {
     },
     true
   );
+  startDocsIframeListenerWatch();
 }
 
 function handleSelectionUpdate(event) {
@@ -300,18 +310,30 @@ function initFloatingButtonSetting() {
 
 function getFloatButtonTarget() {
   if (!hasActiveSelection()) return null;
-  if (!hasRecentPointer()) return null;
-  return {
-    rect: {
-      left: lastPointer.x,
-      right: lastPointer.x,
-      top: lastPointer.y,
-      bottom: lastPointer.y,
-      width: 0,
-      height: 0
-    },
-    selection: captureSelection("")
-  };
+  const docsSelection = getDocsSelection();
+  const selection = docsSelection?.text
+    ? { type: "docs", text: docsSelection.text, editable: true }
+    : captureSelection("");
+
+  if (hasRecentPointer()) {
+    return {
+      rect: {
+        left: lastPointer.x,
+        right: lastPointer.x,
+        top: lastPointer.y,
+        bottom: lastPointer.y,
+        width: 0,
+        height: 0
+      },
+      selection
+    };
+  }
+
+  const rect = docsSelection?.range
+    ? getDocsSelectionRect(docsSelection.range, docsSelection.iframe)
+    : getSelectionRect(selection);
+  if (!rect) return null;
+  return { rect, selection };
 }
 
 function hasActiveSelection() {
@@ -322,6 +344,10 @@ function hasActiveSelection() {
     if (typeof start === "number" && typeof end === "number" && start !== end) {
       return true;
     }
+  }
+  const docsSelection = getDocsSelection();
+  if (docsSelection && docsSelection.text && docsSelection.text.trim()) {
+    return true;
   }
   const selection = window.getSelection();
   if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
@@ -367,6 +393,7 @@ async function handleFloatButtonClick() {
       return;
     }
 
+    sendGeneratingStatus();
     handleGenerate({
       provider,
       model,
@@ -384,12 +411,18 @@ function sendToPanel(message) {
   panelIframe.contentWindow.postMessage(message, "*");
 }
 
+function sendGeneratingStatus() {
+  lastStatusPayload = { loading: true, message: t("statusGenerating") };
+  sendToPanel({ type: "AI_POLISH_STATUS", payload: lastStatusPayload });
+}
+
 function sendSelectionToPanel() {
   if (!panelIframe || !panelIframe.contentWindow) return;
   const text = lastSelection?.text || "";
   const editable = Boolean(lastSelection?.editable);
+  const canReplace = Boolean(lastSelection?.editable) && lastSelection?.type !== "docs";
   lastOutput = "";
-  sendToPanel({ type: "AI_POLISH_SELECTION", payload: { text, editable } });
+  sendToPanel({ type: "AI_POLISH_SELECTION", payload: { text, editable, canReplace } });
   sendToPanel({ type: "AI_POLISH_CLEAR_OUTPUT" });
   sendToPanel({ type: "AI_POLISH_CHECK_KEY" });
 }
@@ -444,6 +477,15 @@ function captureSelection(fallbackText) {
         editable: !active.readOnly && !active.disabled
       };
     }
+  }
+
+  const docsSelection = getDocsSelection();
+  if (docsSelection && docsSelection.text && docsSelection.text.trim()) {
+    return {
+      type: "docs",
+      text: docsSelection.text,
+      editable: true
+    };
   }
 
   const selection = window.getSelection();
@@ -502,7 +544,8 @@ async function handleGenerate(payload) {
   lastOutput = "";
   sendToPanel({ type: "AI_POLISH_STREAM", payload: { text: "" } });
 
-  sendToPanel({ type: "AI_POLISH_STATUS", payload: { loading: true, message: t("statusGenerating") } });
+  lastStatusPayload = { loading: true, message: t("statusGenerating") };
+  sendToPanel({ type: "AI_POLISH_STATUS", payload: lastStatusPayload });
 
   try {
     let fullText = "";
@@ -530,7 +573,7 @@ async function handleGenerate(payload) {
     sendToPanel({ type: "AI_POLISH_RESULT", payload: { text: fullText } });
 
     if (payload.autoReplace && lastSelection?.editable) {
-      replaceSelection(fullText);
+      void replaceSelection(fullText);
       sendToPanel({ type: "AI_POLISH_STATUS", payload: { message: t("statusReplaced") } });
       if (payload.autoClose) {
         hidePanel();
@@ -542,11 +585,12 @@ async function handleGenerate(payload) {
       payload: { message: error?.message || t("errorUnknown") }
     });
   } finally {
-    sendToPanel({ type: "AI_POLISH_STATUS", payload: { loading: false } });
+    lastStatusPayload = { loading: false };
+    sendToPanel({ type: "AI_POLISH_STATUS", payload: lastStatusPayload });
   }
 }
 
-function handleReplace(payload) {
+async function handleReplace(payload) {
   const text = payload.text ?? "";
   if (!text) {
     sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNoOutput") } });
@@ -556,11 +600,15 @@ function handleReplace(payload) {
     sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNotEditable") } });
     return;
   }
-  replaceSelection(text);
+  const ok = await replaceSelection(text);
+  if (!ok) {
+    sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorDocsReplace") } });
+    return;
+  }
   sendToPanel({ type: "AI_POLISH_STATUS", payload: { message: t("statusReplaced") } });
 }
 
-function handleInsertAfter(payload) {
+async function handleInsertAfter(payload) {
   const text = payload.text ?? "";
   if (!text) {
     sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNoOutput") } });
@@ -570,7 +618,11 @@ function handleInsertAfter(payload) {
     sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorNotEditable") } });
     return;
   }
-  insertAfterSelection(text);
+  const ok = await insertAfterSelection(text);
+  if (!ok) {
+    sendToPanel({ type: "AI_POLISH_ERROR", payload: { message: t("errorDocsInsert") } });
+    return;
+  }
   sendToPanel({ type: "AI_POLISH_STATUS", payload: { message: t("statusInserted") } });
 }
 
@@ -620,26 +672,32 @@ function handlePanelHeight(payload) {
   panelIframe.style.top = `${clamp(top, PANEL_PADDING, window.innerHeight - height - PANEL_PADDING)}px`;
 }
 
-function replaceSelection(text) {
-  if (!lastSelection) return;
+async function replaceSelection(text) {
+  if (!lastSelection) return false;
   if (lastSelection.type === "input") {
     replaceInputSelection(lastSelection.element, lastSelection.start, lastSelection.end, text);
+    return true;
   } else if (lastSelection.type === "range") {
     replaceRangeSelection(text);
+    return true;
   } else if (lastSelection.type === "docs") {
-    replaceDocsSelection(text);
+    return await replaceDocsSelection(text);
   }
+  return false;
 }
 
-function insertAfterSelection(text) {
-  if (!lastSelection) return;
+async function insertAfterSelection(text) {
+  if (!lastSelection) return false;
   if (lastSelection.type === "input") {
     insertAfterInputSelection(lastSelection.element, lastSelection.end, text);
+    return true;
   } else if (lastSelection.type === "range") {
     insertAfterRangeSelection(text);
+    return true;
   } else if (lastSelection.type === "docs") {
-    insertAfterDocsSelection(text);
+    return await insertAfterDocsSelection(text);
   }
+  return false;
 }
 
 function fallbackCopy(text) {
@@ -1495,6 +1553,7 @@ async function handleQuickPolish() {
       return;
     }
 
+    sendGeneratingStatus();
     handleGenerate({
       provider,
       model,
@@ -1658,6 +1717,198 @@ function isGoogleDocs() {
   );
 }
 
+function startDocsIframeListenerWatch() {
+  if (!isGoogleDocs()) return;
+  const attach = () => {
+    const iframe = getDocsTextEventIframe();
+    if (!iframe || docsIframeListenerAttached) return;
+    docsIframeListenerAttached = true;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.addEventListener(
+      "selectionchange",
+      (event) => handleDocsSelectionUpdate(event, iframe),
+      true
+    );
+    doc.addEventListener("mouseup", (event) => handleDocsSelectionUpdate(event, iframe), true);
+    doc.addEventListener("keyup", (event) => handleDocsSelectionUpdate(event, iframe), true);
+    doc.addEventListener(
+      "mousedown",
+      (event) => {
+        if (floatButton && event.target && floatButton.contains(event.target)) return;
+        hideFloatButton();
+      },
+      true
+    );
+  };
+
+  attach();
+  const observer = new MutationObserver(() => attach());
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+}
+
+function handleDocsSelectionUpdate(event, iframe) {
+  if (event && typeof event.clientX === "number" && typeof event.clientY === "number") {
+    const rect = iframe.getBoundingClientRect();
+    lastPointer = {
+      x: rect.left + event.clientX,
+      y: rect.top + event.clientY,
+      ts: Date.now()
+    };
+  }
+  clearTimeout(selectionTimer);
+  selectionTimer = setTimeout(updateFloatButton, 60);
+}
+
+function getDocsSelection() {
+  const iframe = getDocsTextEventIframe();
+  if (!iframe) return null;
+  try {
+    const sel = iframe.contentWindow.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+    return {
+      text: sel.toString(),
+      range: sel.getRangeAt(0),
+      iframe
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getDocsSelectionRect(range, iframe) {
+  try {
+    const rect = range.getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) return null;
+    const iframeRect = iframe.getBoundingClientRect();
+    return {
+      left: iframeRect.left + rect.left,
+      right: iframeRect.left + rect.right,
+      top: iframeRect.top + rect.top,
+      bottom: iframeRect.top + rect.bottom,
+      width: rect.width,
+      height: rect.height
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getDocsTextEventIframe() {
+  const iframe = document.querySelector("iframe.docs-texteventtarget-iframe");
+  if (!iframe || !iframe.contentWindow || !iframe.contentDocument) return null;
+  return iframe;
+}
+
+function tryCopyFromDocsIframe() {
+  const iframe = getDocsTextEventIframe();
+  if (!iframe) return false;
+  try {
+    iframe.contentWindow.focus();
+    return Boolean(iframe.contentDocument.execCommand("copy"));
+  } catch (error) {
+    return false;
+  }
+}
+
+function tryExecInsertTextInDocs(text) {
+  const iframe = getDocsTextEventIframe();
+  if (!iframe) return false;
+  try {
+    iframe.contentWindow.focus();
+    if (iframe.contentDocument.body && typeof iframe.contentDocument.body.focus === "function") {
+      iframe.contentDocument.body.focus();
+    }
+    const ok = iframe.contentDocument.execCommand("insertText", false, text);
+    if (ok) return true;
+    return iframe.contentDocument.execCommand("insertHTML", false, text);
+  } catch (error) {
+    return false;
+  }
+}
+
+function tryDispatchInputInDocs(text) {
+  const iframe = getDocsTextEventIframe();
+  if (!iframe) return false;
+  try {
+    if (typeof InputEvent === "undefined") return false;
+    const doc = iframe.contentDocument;
+    if (!doc) return false;
+    iframe.contentWindow.focus();
+    if (doc.body && typeof doc.body.focus === "function") {
+      doc.body.focus();
+    }
+    const target = doc.activeElement || doc.body;
+    if (!target) return false;
+    const before = new InputEvent("beforeinput", {
+      bubbles: true,
+      cancelable: true,
+      inputType: "insertText",
+      data: text
+    });
+    const dispatched = target.dispatchEvent(before);
+    const handled = !dispatched || before.defaultPrevented;
+    if (!handled) return false;
+    const input = new InputEvent("input", {
+      bubbles: true,
+      cancelable: false,
+      inputType: "insertText",
+      data: text
+    });
+    target.dispatchEvent(input);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function tryPasteInDocs(text) {
+  const iframe = getDocsTextEventIframe();
+  if (!iframe || !navigator.clipboard || !navigator.clipboard.writeText) return false;
+  let original = null;
+  try {
+    if (navigator.clipboard.readText) {
+      original = await navigator.clipboard.readText();
+    }
+  } catch (error) {
+    original = null;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    return false;
+  }
+  let pasted = false;
+  try {
+    iframe.contentWindow.focus();
+    if (iframe.contentDocument.body && typeof iframe.contentDocument.body.focus === "function") {
+      iframe.contentDocument.body.focus();
+    }
+    pasted = Boolean(iframe.contentDocument.execCommand("paste"));
+  } catch (error) {
+    pasted = false;
+  }
+  if (original !== null) {
+    try {
+      await navigator.clipboard.writeText(original);
+    } catch (error) {
+      // ignore restore failures
+    }
+  }
+  return pasted;
+}
+
+async function finalizeDocsFailure(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    }
+  } catch (error) {
+    // ignore
+  }
+  return false;
+}
+
 function shouldTryClipboardSelection(selection) {
   return isGoogleDocs() && (!selection?.text || !selection.text.trim());
 }
@@ -1669,7 +1920,9 @@ async function attemptClipboardSelection() {
   try {
     let copied = false;
     try {
-      copied = document.execCommand("copy");
+      copied = isGoogleDocs()
+        ? tryCopyFromDocsIframe() || document.execCommand("copy")
+        : document.execCommand("copy");
     } catch (error) {
       copied = false;
     }
@@ -1682,27 +1935,101 @@ async function attemptClipboardSelection() {
   }
 }
 
-function replaceDocsSelection(text) {
-  if (!text) return;
+async function verifyDocsInsertion(beforeText) {
+  if (!isGoogleDocs()) return true;
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  const before = (beforeText || "").trim();
+  if (!before) return true;
+  const selection = getDocsSelection();
+  if (selection && selection.text) {
+    const after = selection.text.trim();
+    return after !== before;
+  }
+  const copied = (await attemptClipboardSelection()) || "";
+  return copied.trim() && copied.trim() !== before;
+}
+
+async function replaceDocsSelection(text) {
+  if (!text) return false;
+  let beforeText = lastSelection?.text || "";
+  if (!beforeText && isGoogleDocs()) {
+    const clip = await attemptClipboardSelection();
+    if (clip && clip.trim()) {
+      beforeText = clip;
+      if (lastSelection) lastSelection.text = clip;
+    }
+  }
   const active = getDeepActiveElement();
   if (active && typeof active.focus === "function") {
     active.focus();
   }
+  if (tryExecInsertTextInDocs(text)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(text);
+  }
   if (tryExecInsertText(text)) {
     dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(text);
   }
+  if (tryDispatchInputInDocs(text)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(text);
+  }
+  if (await tryPasteInDocs(text)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(text);
+  }
+  return finalizeDocsFailure(text);
 }
 
-function insertAfterDocsSelection(text) {
-  if (!text) return;
+async function insertAfterDocsSelection(text) {
+  if (!text) return false;
+  let beforeText = lastSelection?.text || "";
+  if (!beforeText && isGoogleDocs()) {
+    const clip = await attemptClipboardSelection();
+    if (clip && clip.trim()) {
+      beforeText = clip;
+      if (lastSelection) lastSelection.text = clip;
+    }
+  }
   const active = getDeepActiveElement();
   if (active && typeof active.focus === "function") {
     active.focus();
   }
   const combined = `${lastSelection?.text || ""}${text}`;
+  if (tryExecInsertTextInDocs(combined)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(combined);
+  }
   if (tryExecInsertText(combined)) {
     dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(combined);
   }
+  if (tryDispatchInputInDocs(combined)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(combined);
+  }
+  if (await tryPasteInDocs(combined)) {
+    dispatchEditableInput(active);
+    const ok = await verifyDocsInsertion(beforeText);
+    if (ok) return true;
+    return finalizeDocsFailure(combined);
+  }
+  return finalizeDocsFailure(combined);
 }
 
 })();

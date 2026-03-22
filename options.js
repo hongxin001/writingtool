@@ -268,6 +268,19 @@ function buildDefaultTemplates() {
         "Rewrite to be concise and clear while preserving the original meaning."
     },
     {
+      id: "short",
+      name: chrome.i18n.getMessage("templateShortName") || "Short form",
+      textZh:
+        chrome.i18n.getMessage("templateShortTextZh") ||
+        "将文本简写为更短的版本，保留关键信息，必要时用要点呈现。",
+      textEn:
+        chrome.i18n.getMessage("templateShortTextEn") ||
+        "Condense into a short version that keeps key points; use bullet points if helpful.",
+      text:
+        chrome.i18n.getMessage("templateShortTextEn") ||
+        "Condense into a short version that keeps key points; use bullet points if helpful."
+    },
+    {
       id: "professional",
       name: chrome.i18n.getMessage("templateProfessionalName") || "Professional",
       textZh:
@@ -603,6 +616,18 @@ function applyI18n() {
     const key = el.getAttribute("data-i18n-placeholder");
     const message = chrome.i18n.getMessage(key);
     if (message) el.setAttribute("placeholder", message);
+  });
+
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-title");
+    const message = chrome.i18n.getMessage(key);
+    if (message) el.setAttribute("title", message);
+  });
+
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-aria");
+    const message = chrome.i18n.getMessage(key);
+    if (message) el.setAttribute("aria-label", message);
   });
 }
 
